@@ -6,6 +6,7 @@ import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -66,9 +67,13 @@ public class AukroTest {
 
         String categoryName, categoryHref;
         for (WebElement category : categories) {
+
             categoryName = category.findElement(By.cssSelector("a")).getText();
             categoryHref = category.findElement(By.cssSelector("a")).getAttribute("href");
+
             wait.until(elementToBeClickable(category)).click();
+
+            // synchronization & checks
             wait.until(urlToBe(categoryHref));
             wait.until(textToBePresentInElementLocated(By.cssSelector(".sidebar-title"), categoryName));
 
@@ -79,7 +84,7 @@ public class AukroTest {
             builder.moveToElement(filterCheckbox).click(filterCheckbox);
             builder.perform();
 
-            // synchronization
+            // synchronization & checks
             wait.until(attributeContains(filterCheckbox, "class", "mat-checkbox-checked"));
             Thread.sleep(1500); // yeah, an anti-pattern
             builder.moveToElement(driver.findElement(By.cssSelector(".settings-wrapper .active-filters div"))).perform();
@@ -116,16 +121,17 @@ public class AukroTest {
                 wait.until(elementToBeClickable(offerToOpen.findElement(By.cssSelector(".box-wrapper > a")))).click();
 
                 // verify detail (badge next to name)
-                wait.until(visibilityOfElementLocated(By.cssSelector("heading svg-icon#money-back-guarantee")));
+                boolean isBadgeNextNameVisible = wait.until(visibilityOfElementLocated(By.cssSelector("heading svg-icon#money-back-guarantee"))).isDisplayed();
 
-                // badge next to delivery options
-                wait.until(visibilityOfElementLocated(By.cssSelector("delivery-info ul svg-icon#money-back-guarantee")));
+                // verify detail (badge next to delivery options)
+                boolean isBadgeNextDeliveryOptionsVisible = wait.until(visibilityOfElementLocated(By.cssSelector("delivery-info ul svg-icon#money-back-guarantee"))).isDisplayed();
 
+                Assert.assertTrue(isBadgeNextNameVisible, "Missing 'money back guarantee' badge next to name in detail page");
+                Assert.assertTrue(isBadgeNextDeliveryOptionsVisible, "Missing 'money back guarantee' badge next to delivery options in detail page");
 
-                // Bid vs. Buy Now
-                boolean isBid, isBuy;
 
                 // detecting bid
+                boolean isBid, isBuy;
                 try {
                     wait.withTimeout(ofSeconds(5)).until(visibilityOfElementLocated(By.xpath("//button[contains(text(), 'Přihodit')]")));
                     isBid = true;
@@ -161,7 +167,7 @@ public class AukroTest {
             break;
             }
 
-            // return back from a category and loop over to a next category
+            // category had less than 5 items - return back from the category and loop over a next category
             wait.until(elementToBeClickable(By.cssSelector("categories > h2 > a"))).click();
             wait.until(
                     textToBePresentInElementLocated(
